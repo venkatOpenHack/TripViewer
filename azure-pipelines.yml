@@ -29,4 +29,10 @@ stages:
         dockerfile: '$(Build.SourcesDirectory)/apis/userprofile/Dockerfile'
         tags: |
           $(tag)
-    
+    - task: CreateWorkItem@1
+      condition: failed()
+      inputs:
+        workItemType: 'Bug'
+        title: 'Failed Build'
+        associate: true
+        linkPR: true
