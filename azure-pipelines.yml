@@ -4,8 +4,10 @@
 
 trigger:
 - master
+
 pool:
   default
+
 resources:
 - repo: self
 
@@ -27,3 +29,4 @@ stages:
         dockerfile: '$(Build.SourcesDirectory)/apis/userprofile/Dockerfile'
         tags: |
           $(tag)
+    
