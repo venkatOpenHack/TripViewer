@@ -36,3 +36,51 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+- stage: Deploy
+  displayName: Deploy stage
+  jobs:
+  - job: Deploy
+    displayName: Deploy
+    steps:
+    - task: AzureWebAppContainer@1
+      inputs:
+        azureSubscription: 'OTA-PRD-1310(4)(337a5d8e-1cf6-4a6f-bc59-95ea4f64f58b)'
+        appName: 'openhackrm78bnn5poi'
+        deployToSlotOrASE: true
+        resourceGroupName: 'openhackrm78bnn5rg'
+        slotName: 'staging'
+        containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: |
+          #!/bin/bash
+                    set -eux
+                    declare -r HOST="openhackrm78bnn5poi-staging.azurewebsites.net/api/healthcheck/poi"
+                    
+                    wait-for-url() {
+                    echo "POI Checking Deployed Staging Health Status $1"
+                    timeout -s TERM 45 bash -c \
+                    'while [[ "$(curl -s -o /dev/null -L -w ''%{http_code}'' ${0})" != "200" ]];\
+                    do echo "Waiting for ${0}" && sleep 5;\
+                    done' ${1}
+                    echo "OK!"
+                    }
+                    wait-for-url https://${HOST}
+    - task: AzureAppServiceManage@0
+      condition: failed()
+      inputs:
+        azureSubscription: 'OTA-PRD-1310(4)(337a5d8e-1cf6-4a6f-bc59-95ea4f64f58b)'
+        Action: 'Stop Azure App Service'
+        WebAppName: 'openhackrm78bnn5poi'
+        SpecifySlotOrASE: true
+        ResourceGroupName: 'openhackrm78bnn5rg'
+        Slot: 'staging'
+    - task: AzureAppServiceManage@0
+      condition: succeeded()
+      inputs:
+        azureSubscription: 'OTA-PRD-1310(4)(337a5d8e-1cf6-4a6f-bc59-95ea4f64f58b)'
+        Action: 'Swap Slots'
+        WebAppName: 'openhackrm78bnn5poi'
+        ResourceGroupName: 'openhackrm78bnn5rg'
+        SourceSlot: 'staging'
